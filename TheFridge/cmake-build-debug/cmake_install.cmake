@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/carme/CLionProjects/TheFridge
+# Install script for directory: C:/Users/14078/Desktop/COP3530 - Project 3 - Fridge/TheFridge
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -34,7 +34,7 @@ endif()
 
 # Set default install directory permissions.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "C:/Users/carme/OneDrive/Desktop/CLion 2023.3.2/bin/mingw/bin/objdump.exe")
+  set(CMAKE_OBJDUMP "C:/Users/14078/AppData/Local/Programs/CLion/bin/mingw/bin/objdump.exe")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "C:/Users/carme/CLionProjects/TheFridge/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "C:/Users/14078/Desktop/COP3530 - Project 3 - Fridge/TheFridge/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

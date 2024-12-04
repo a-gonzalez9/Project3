@@ -51,4 +51,38 @@ class MergeSort {
             merge(attribute, start, middle, end); //then conquer starting with the first element
         }
     }
+
+    int quickPartition(vector<int> &attribute, int low, int high) {
+    int pivot = attribute[low];
+    int up = low;
+    int down = high;
+    while (up < down) {
+        for (int j = up; j < high; j++) {
+            if (attribute[up] > pivot) {
+                break;
+            }
+            up++;
+        }
+        for (int i = high; i > low; i--) {
+            if (attribute[down] < pivot) {
+                break;
+            }
+            down--;
+        }
+        if (up < down) {
+            swap(attribute[up], attribute[down]);
+
+        }
+    }
+    swap(attribute[low], attribute[down]);
+    return down;
+}
+
+void quicksort(vector<int>& attribute, int low, int high) {
+    if (low < high) {
+        int pivot = quickPartition(attribute, low, high);
+        quicksort(attribute, low, pivot - 1);
+        quicksort(attribute, pivot + 1, high);
+    }
+}
 };

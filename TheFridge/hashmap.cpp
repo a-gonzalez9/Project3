@@ -1,69 +1,54 @@
-//
-// Created by carmel on 11/28/2024.
-//
-
-#include "hashmap.h"
+//merge sort
 #include <iostream>
-#include <list>
 #include <vector>
+
 using namespace std;
 
-//VERY basic hashmap
-class Hashmap {
-    //list<string> elems;
-    vector<list<string>> arr;
-    int size;
-    int num_elems;
-    float load_factor;
+class MergeSort {
+    vector<int> merge(vector<int> attribute, int start, int middle, int end) {
+        int leftSize = middle - start + 1;
+        int rightSize = end - middle;
 
-    int hashFunc(string key) {
-        return key.length() % size;
-    }
-
-public:
-    Hashmap(int buckets) {
-        size = buckets;
-        arr.resize(buckets);
-        num_elems = 0;
-        load_factor = 0.75;
-    }
-
-    void insert(string key) {
-        int index = hashFunc(key);
-        arr[index].push_back(key);
-        num_elems++;
-        cout << (float)num_elems / (float)size << endl;
-        if ((float)num_elems / (float)size >= load_factor) {
-            resize();
+// Separate halves into two seperate sorted arrays
+        //int left[leftSize], right[rightSize];
+        vector<int> sortedLeft(leftSize);
+        vector<int> sortedRight(rightSize);
+        for(int i=0; i < leftSize; i++){
+            sortedLeft[i] = attribute[start + i];
         }
-        //cout << "Yippee!" << endl;
-    }
+        for(int i=0; i < rightSize; i++){
+            sortedRight[i] = attribute[middle + 1 + i];
+        }
 
-    void resize() {
-        size *= 2;
-        vector<list<string>> newArr(size);
-        for (int i = 0; i < size / 2; i++) {
-            for (auto& key: arr[i]) {
-                int index = hashFunc(key);
-                newArr[index].push_back(key);
+// Pointers for merging
+        int leftPtr = 0, rightPtr = 0;
+        int mergedPtr = start;
+
+// While both left and right have elements left
+        while (leftPtr < leftSize && rightPtr < rightSize) {
+            if (sortedLeft[leftPtr] <= sortedRight[rightPtr]) {
+                attribute[mergedPtr++] = sortedLeft[leftPtr++];
             }
-            arr[i].clear();
-        }
-        arr = move(newArr);
-    }
-
-    list<string> getElems(string key) {
-        int index = hashFunc(key);
-        return arr[index];
-    }
-
-    void display() {
-        for (int i = 0; i < size - 1; i++) {
-            cout << i << ": ";
-            for (auto &key : arr[i]) {
-                cout << key << ", ";
+            else {
+                attribute[mergedPtr++] = sortedRight[rightPtr++];
             }
         }
-        cout << endl;
+
+        while (leftPtr < leftSize) { // While left has elements left
+            attribute[mergedPtr++] = sortedLeft[leftPtr++];
+        }
+
+        while (rightPtr < rightSize) { // While right has elements left
+            attribute[mergedPtr++] = sortedRight[rightPtr++];
+        }
+    }
+
+    void mergeSort(vector<int> attribute, int start, int end) {
+        if (start < end) { //basically if there is more than 1 element in the vector
+            int middle = (start + end) / 2;  //get the middle index
+            mergeSort(attribute, start, middle); //divide the first half until it is ones
+            mergeSort(attribute, middle + 1, end); //then divide the second half
+            merge(attribute, start, middle, end); //then conquer starting with the first element
+        }
     }
 };

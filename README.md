@@ -22,6 +22,8 @@ Strategy: We will use a greedy search algorithm in order to find the best match 
 
 Distribution of Responsibilities and Roles:  Carmel will focus primarily on the backend code by implementing algorithms and logic using C++, Ramia will focus primarily on the frontend code by using SFML to develop the interface, and Angelina will focus on a mix of both roles.
 
+To Run: Download the files and run main.cpp.
+
 References: 
 
 https://www.kaggle.com/datasets/shuyangli94/food-com-recipes-and-user-interactions

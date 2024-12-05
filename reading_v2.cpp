@@ -70,15 +70,22 @@ Recipe organizer (vector<string> recipe_attr){
 
     //handle total_cooktime
     string total_timestr = recipe_attr[6].substr(2);
+    cout << total_timestr << endl;
     int hour_ind = total_timestr.find('H');
+    cout << hour_ind << endl;
     int mins = 0;
     if (hour_ind != string::npos) {
         int length_to_go = hour_ind - 1;
+        if (hour_ind == 1){
+            length_to_go = 1;
+        }
         int hours = stoi(total_timestr.substr(0, length_to_go));
         mins += 60*hours;
         total_timestr = total_timestr.substr(hour_ind + 1);
     }
-    mins += stoi(total_timestr.substr(0, total_timestr.length() - 1));
+    if (total_timestr.size() != 0) {
+        mins += stoi(total_timestr.substr(0, total_timestr.length() - 1));
+    }
     cout << "double passed!!" << endl;
 
     string ingredients = cleanCSVField(recipe_attr[13]);
@@ -87,9 +94,27 @@ Recipe organizer (vector<string> recipe_attr){
     vector<string> ingredientsvec = splitString(ingredients, ',');
     vector<string> instructionsvec = splitString(instructions, ',');
 
-    float rating = stof(recipe_attr[14]);
-    int review_count = stoi(recipe_attr[15]);
-    float calories = stof(recipe_attr[16]);
+    float rating, calories;
+    int review_count;
+    if (recipe_attr[14] != "NA"){
+        rating = stof(recipe_attr[14]);
+    }
+    else{
+        rating = 0.0;
+    }
+    if (recipe_attr[15] != "NA"){
+        review_count = stoi(recipe_attr[15]);
+    }
+    else{
+        review_count = 0;
+    }
+    if (recipe_attr[16] != "NA"){
+        calories = stof(recipe_attr[16]);
+    }
+    else{
+        calories = 0.0;
+    }
+
 
     //make recipe object
     Recipe the_recipe = Recipe(id, recipe_attr[1], mins, recipe_attr[10], ingredientsvec, rating, review_count,
@@ -121,40 +146,71 @@ vector<Recipe> parseCSVLine(const string& filename) {
 
     while (getline(file, line, ',')) {
         string returned = line;
-
-        if (line[1] == 'c'){
+        cout << line << endl;
+        if (line.substr(0, 2) == "\"c" || line.substr(0,2) == "c("){
             returned += ",";
+
             while (getline(file, line, ')')){
                 returned += line;
-                if (line[line.size()-1] != '"'){
+                cout << returned << endl;
+//                if (line[line.size()-1] == ')'){
+//
+//                    getline(file, line, ',');
+//                    break;
+//                }
+//                if (line.substr(line.size() -2, line.size()) == "\"\""){
+//
+//                }
+                if (line[line.size()-1] != '\"' ){
+                    getline(file, line, ',');
+                    cout << line << endl;
+                    if (line[0] == '\"' && line.size() == 1){
+                        //getline(file, line, ',');
+                        break;
+                    }
                     continue;
                 }
                 getline(file, line, ',');
                 break;
-            }
 
+            }
+            //cout << line << endl;
             if (line != "\""){
-                count++;
+
                 if (count > 26){
                     attr.push_back(returned);
                     Recipe the_recipe = organizer(attr);
                     recipes.push_back(the_recipe);
+                    attr.clear();
                     count = 0;
                     total_amount++;
                 }
-                cout << "hello" << endl;
-                attr.clear();
+
                 int pos = line.find('\n');
                 line = line.substr(pos + 1, line.size() - 1);
-                count++;
                 attr.push_back(line);
+                //cout << count << ". " << line << endl;
+                count++;
                 continue;
             }
         }
+        else if (line[0] == '"'){
+            //cout << line << endl;
+            getline(file, line, '"');
+            cout << line << endl << endl;
+            if (line.size() != 0 || returned.size() < line.size()){
+                returned += ",";
+                returned += line;
+                getline(file, line, ',');
+                //cout << line << endl;
+            }
+        }
+
         cout << count << ". " << returned << endl;
         attr.push_back(returned);
         count++;
     }
+
     return recipes;
 }
 

@@ -34,7 +34,7 @@ vector<string> splitStringWithQuotes(const string& str, char delim) {
     bool in_parentheses = false;
 
     while (getline(ss, token, delim)) {
-    
+
         if (in_parentheses) {
             the_string += delim + token;
             if (!token.empty() && token[token.size() - 2] == ')') {
@@ -53,13 +53,7 @@ vector<string> splitStringWithQuotes(const string& str, char delim) {
                 in_parentheses = true;
                 the_string += token;
             }
-            /*else if (!token.empty() && token[0] == '"') {
-                inside_quote = true;
-                if (!in_parentheses) {
-                    the_string += token;
-                }
-                // Remove the starting quote
-            }*/
+
             else {
                 result.push_back(token);
             }
@@ -73,7 +67,7 @@ vector<string> splitStringWithQuotes(const string& str, char delim) {
     return result;
 }
 
-vector<Recipe> parseCSVLine(const string& filename) {
+vector<Recipe> parseCSVLine(const string& filename, map<string, vector<int>> &the_map) {
     vector<Recipe> recipes;
     ifstream file(filename);
     int counter = 0;
@@ -145,7 +139,7 @@ vector<Recipe> parseCSVLine(const string& filename) {
         }
 
         // Handle ingredients and instructions
-        vector<string> ingredientsvec = splitStringWithQuotes(ingredients, ',');
+        vector<string> ingredientsvec = splitStringWithQuotes(ingredients.substr(3, ingredients.size() - 6), ',');
 
         // Convert rating, review count, and calories to numeric types
         float rating;
@@ -178,6 +172,17 @@ vector<Recipe> parseCSVLine(const string& filename) {
         catch (invalid_argument &e) {
             calories = 0;
         }
+        for (int i = 0; i < ingredientsvec.size(); i++) {
+            for (auto str : splitStringWithQuotes(ingredientsvec[i], ',')) {
+                string new_stir;
+                for (char c: str) {
+                    if (c != '"') {
+                        new_stir += c;
+                    }
+                }
+                the_map[new_stir].push_back(id);
+            }
+        }
 
         // Create Recipe object and store it in the vector
         Recipe the_recipe = Recipe(id, name, mins, category, ingredientsvec, rating, review_count, calories, author_name);
@@ -190,10 +195,16 @@ vector<Recipe> parseCSVLine(const string& filename) {
 }
 
 int main() {
-    vector<Recipe> csv_stuff = parseCSVLine("C:\\Users\\carme\\Downloads\\actuallyUpdated.csv");
-    /*for (int i = 0; i < csv_stuff.size(); i++) {
-        cout << csv_stuff[i].id << endl;
-    }*/
+    map<string, vector<int>> the_map;
+    vector<Recipe> csv_stuff = parseCSVLine("C:\\Users\\carme\\Downloads\\actuallyUpdated.csv", the_map);
+    for (auto it = the_map.begin(); it != the_map.end(); ++it) {
+       cout << "Key: " << it->first << endl;
+       for (int id : it->second) {
+           cout << "Id: " << id << " ";
+       }
+       cout << endl;
+    }
     return 0;
 }
+
 

@@ -13,8 +13,8 @@
 using namespace std;
 
 int main() {
-    cout << "Current working directory: " << filesystem::current_path() << endl;
 
+    // Check if the font file exists
     namespace fs = std::filesystem;
     if (fs::exists("../Ubuntu/Ubuntu-Regular.ttf")) {
         std::cout << "Font file found!" << std::endl;
@@ -23,8 +23,8 @@ int main() {
         return -1;
     }
 
-    // Create window that fills the entire screen
-    sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Recipe App", sf::Style::Fullscreen);
+    // Create a window that fills the entire screen
+    sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Fridge App", sf::Style::Fullscreen);
 
     // Load a font
     sf::Font font;
@@ -33,18 +33,17 @@ int main() {
         return -1;
     }
 
+    // Page management
     int currentPage = 1;
     vector<string> preferences;
     vector<string> avoidances;
     vector<string> priorities;
+    bool inputActive = false;
+    bool avoidInputActive = false;
+    bool showCursor = false;
+    sf::Clock cursorClock;
 
-    // Create "DONE" button
-    sf::Text doneButton("DONE", font, 30);
-    doneButton.setFillColor(sf::Color::White);
-    doneButton.setStyle(sf::Text::Bold);
-    doneButton.setPosition((window.getSize().x - doneButton.getGlobalBounds().width) / 2.0f, window.getSize().y - 100.0f);
-
-    // Elements for page 1
+    // Elements for page 1 (Logo, Title, and Begin Button)
     sf::Texture fridgeTexture;
     if (!fridgeTexture.loadFromFile("../FridgeTransparent.png")) {
         cerr << "Error: Could not load FridgeTransparent.png" << endl;
@@ -58,91 +57,152 @@ int main() {
     float scale = std::min(scaleX, scaleY);
     fridgeSprite.setScale(scale, scale);
     sf::FloatRect spriteBounds = fridgeSprite.getGlobalBounds();
-    fridgeSprite.setPosition((window.getSize().x - spriteBounds.width) / 2.0f, (window.getSize().y - spriteBounds.height) / 3.0f);
+    fridgeSprite.setPosition((window.getSize().x - spriteBounds.width) / 2.0f, (window.getSize().y - spriteBounds.height) / 4.0f);
     sf::Text titleText("Welcome to Fridge", font, 50);
     titleText.setFillColor(sf::Color::White);
     titleText.setStyle(sf::Text::Bold);
-    titleText.setPosition((window.getSize().x - titleText.getGlobalBounds().width) / 2.0f, fridgeSprite.getPosition().y + spriteBounds.height + 40.0f);
+    titleText.setPosition((window.getSize().x - titleText.getGlobalBounds().width) / 2.0f, fridgeSprite.getPosition().y + spriteBounds.height + 0.0f);
 
-    // Load right arrow texture
-    sf::Texture arrowTexture;
-    if (!arrowTexture.loadFromFile("../rightarrow.png")) {
-        cerr << "Error: Could not load rightarrow.png" << endl;
+    // Load Begin and Done button textures
+    sf::Texture buttonTexture;
+    if (!buttonTexture.loadFromFile("../button.png")) {
+        cerr << "Error: Could not load button.png" << endl;
         return -1;
     }
-    arrowTexture.setSmooth(true);
-    sf::Sprite rightArrow;
-    rightArrow.setTexture(arrowTexture);
-    rightArrow.setScale(0.4f, 0.4f);
-    sf::FloatRect arrowBounds = rightArrow.getGlobalBounds();
-    rightArrow.setPosition(window.getSize().x - arrowBounds.width - 150.0f, (window.getSize().y - arrowBounds.height) / 2.0f);
+    buttonTexture.setSmooth(true);
 
-    // Load left arrow texture
-    sf::Texture leftArrowTexture;
-    if (!leftArrowTexture.loadFromFile("../leftarrow.png")) {
-        cerr << "Error: Could not load leftarrow.png" << endl;
-        return -1;
-    }
-    leftArrowTexture.setSmooth(true);
-    sf::Sprite leftArrow;
-    leftArrow.setTexture(leftArrowTexture);
-    leftArrow.setScale(0.4f, 0.4f);
-    sf::FloatRect leftArrowBounds = leftArrow.getGlobalBounds();
-    leftArrow.setPosition(150.0f, (window.getSize().y - leftArrowBounds.height) / 2.0f);
+    // Create Begin button sprite
+    sf::Sprite beginButton;
+    beginButton.setTexture(buttonTexture);
+    beginButton.setScale(0.5f, 0.5f);
+    sf::FloatRect beginButtonBounds = beginButton.getGlobalBounds();
+    beginButton.setPosition((window.getSize().x - beginButtonBounds.width) / 2.0f, titleText.getPosition().y + 60.0f);
 
-    // Page 2 elements (Preferences)
+    sf::Text beginButtonText("BEGIN", font, 30);
+    beginButtonText.setFillColor(sf::Color::Black);
+    beginButtonText.setStyle(sf::Text::Bold);
+    beginButtonText.setPosition(
+            beginButton.getPosition().x + (beginButtonBounds.width - beginButtonText.getGlobalBounds().width) / 2.0f,
+            beginButton.getPosition().y + (beginButtonBounds.height - beginButtonText.getGlobalBounds().height) / 2.0f - 10.0f
+    );
+
+    // Create Done button sprite
+    sf::Sprite doneButton;
+    doneButton.setTexture(buttonTexture);
+    doneButton.setScale(0.5f, 0.5f);
+    doneButton.setPosition(beginButton.getPosition());
+
+    sf::Text doneButtonText("DONE", font, 30);
+    doneButtonText.setFillColor(sf::Color::Black);
+    doneButtonText.setStyle(sf::Text::Bold);
+    doneButtonText.setPosition(
+            doneButton.getPosition().x + (beginButtonBounds.width - doneButtonText.getGlobalBounds().width) / 2.0f,
+            doneButton.getPosition().y + (beginButtonBounds.height - doneButtonText.getGlobalBounds().height) / 2.0f - 10.0f
+    );
+
+    // Elements for page 2 (Merged Preferences and Avoidances)
     sf::Text page2Question("Which ingredients would you like to use?", font, 40);
     page2Question.setFillColor(sf::Color::White);
-    page2Question.setPosition((window.getSize().x - page2Question.getGlobalBounds().width) / 2.0f, 100.0f);
-    sf::RectangleShape inputBox(sf::Vector2f(400.0f, 50.0f));
+    page2Question.setPosition((window.getSize().x - page2Question.getGlobalBounds().width) / 2.0f, 200.0f);
+    sf::RectangleShape inputBox(sf::Vector2f(700.0f, 50.0f));
     inputBox.setFillColor(sf::Color(255, 255, 255, 100));
-    inputBox.setPosition((window.getSize().x - inputBox.getSize().x) / 2.0f, 200.0f);
-    sf::Text userInput("", font, 30);
+    inputBox.setPosition((window.getSize().x - inputBox.getSize().x) / 2.0f, 300.0f);
+    sf::Text userInput("|", font, 30);
     userInput.setFillColor(sf::Color::Black);
-    userInput.setPosition(inputBox.getPosition().x + 10.0f, inputBox.getPosition().y + 10.0f);
+    userInput.setPosition(inputBox.getPosition().x + inputBox.getSize().x / 2.0f, inputBox.getPosition().y + 5.0f);
     string currentInput = "";
 
-    // Page 3 elements (Avoidances)
     sf::Text page3Question("Which ingredients would you like to avoid?", font, 40);
     page3Question.setFillColor(sf::Color::White);
-    page3Question.setPosition((window.getSize().x - page3Question.getGlobalBounds().width) / 2.0f, 100.0f);
+    page3Question.setPosition((window.getSize().x - page3Question.getGlobalBounds().width) / 2.0f, 500.0f);
+    sf::RectangleShape avoidInputBox(sf::Vector2f(700.0f, 50.0f));
+    avoidInputBox.setFillColor(sf::Color(255, 255, 255, 100));
+    avoidInputBox.setPosition((window.getSize().x - avoidInputBox.getSize().x) / 2.0f, 600.0f);
+    sf::Text avoidUserInput("|", font, 30);
+    avoidUserInput.setFillColor(sf::Color::Black);
+    avoidUserInput.setPosition(avoidInputBox.getPosition().x + inputBox.getSize().x / 2.0f, avoidInputBox.getPosition().y + 5.0f);
+    string avoidCurrentInput = "";
 
-    // Page 4 elements (Prioritization)
+    // Elements for page 3 (Prioritization)
     sf::Text page4Question("How would you prioritize these qualities?", font, 40);
     page4Question.setFillColor(sf::Color::White);
-    page4Question.setPosition((window.getSize().x - page4Question.getGlobalBounds().width) / 2.0f, 100.0f);
+    page4Question.setPosition((window.getSize().x - page4Question.getGlobalBounds().width) / 2.0f, 200.0f);
 
-    vector<string> categories = {"Cook Time", "Calorie Count", "Popularity"};
-    vector<vector<sf::RectangleShape>> priorityBoxes(3, vector<sf::RectangleShape>(3));
-    vector<sf::Text> priorityTexts;
-    for (int i = 0; i < 3; ++i) {
-        sf::Text categoryText(categories[i], font, 30);
-        categoryText.setFillColor(sf::Color::White);
-        categoryText.setPosition(150.0f, 200.0f + i * 100.0f);
-        priorityTexts.push_back(categoryText);
-        for (int j = 0; j < 3; ++j) {
-            priorityBoxes[i][j].setSize(sf::Vector2f(50.0f, 50.0f));
-            priorityBoxes[i][j].setFillColor(sf::Color::White);
-            priorityBoxes[i][j].setPosition(400.0f + j * 100.0f, 200.0f + i * 100.0f);
-        }
+    sf::Text page4Context("Click in the order you would rank them, starting with high priority", font, 20);
+    page4Context.setFillColor(sf::Color::White);
+    page4Context.setPosition((window.getSize().x - page4Context.getGlobalBounds().width) / 2.0f, 265.0f);
+
+    // Load icons for cook time, popularity, and calorie count
+    sf::Texture cookTimeTexture;
+    if (!cookTimeTexture.loadFromFile("../cooktime.png")) {
+        cerr << "Error: Could not load cooktime.png" << endl;
+        return -1;
+    }
+    sf::Texture popularityTexture;
+    if (!popularityTexture.loadFromFile("../popularity.png")) {
+        cerr << "Error: Could not load popularity.png" << endl;
+        return -1;
+    }
+    sf::Texture calorieTexture;
+    if (!calorieTexture.loadFromFile("../calorie.png")) {
+        cerr << "Error: Could not load calorie.png" << endl;
+        return -1;
     }
 
-    // Create gradient background
+    // Load textures for hovered versions of icons
+    sf::Texture cookTimeTexture2;
+    if (!cookTimeTexture2.loadFromFile("../cooktime2.png")) {
+        cerr << "Error: Could not load cooktime2.png" << endl;
+        return -1;
+    }
+    sf::Texture popularityTexture2;
+    if (!popularityTexture2.loadFromFile("../popularity2.png")) {
+        cerr << "Error: Could not load popularity2.png" << endl;
+        return -1;
+    }
+    sf::Texture calorieTexture2;
+    if (!calorieTexture2.loadFromFile("../calorie2.png")) {
+        cerr << "Error: Could not load calorie2.png" << endl;
+        return -1;
+    }
+
+    // Create sprites for the icons
+    sf::Sprite cookTimeSprite;
+    cookTimeSprite.setTexture(cookTimeTexture);
+    cookTimeSprite.setScale(0.5f, 0.5f);
+    sf::FloatRect cookTimeBounds = cookTimeSprite.getGlobalBounds();
+    cookTimeSprite.setPosition((window.getSize().x / 8.0f * 2.0f) - (cookTimeBounds.width / 2.0f), 350.0f);
+
+    sf::Sprite popularitySprite;
+    popularitySprite.setTexture(popularityTexture);
+    popularitySprite.setScale(0.5f, 0.5f);
+    sf::FloatRect popularityBounds = popularitySprite.getGlobalBounds();
+    popularitySprite.setPosition((window.getSize().x / 2.0f) - (popularityBounds.width / 2.0f), 350.0f);
+
+    sf::Sprite calorieSprite;
+    calorieSprite.setTexture(calorieTexture);
+    calorieSprite.setScale(0.5f, 0.5f);
+    sf::FloatRect calorieBounds = calorieSprite.getGlobalBounds();
+    calorieSprite.setPosition((window.getSize().x / 8.0f * 6.0f) - (calorieBounds.width / 2.0f), 350.0f);
+
+    // Create a gradient background (top to bottom gradient)
     sf::VertexArray gradient(sf::Quads, 4);
     gradient[0].position = sf::Vector2f(0, 0);
     gradient[1].position = sf::Vector2f(window.getSize().x, 0);
     gradient[2].position = sf::Vector2f(window.getSize().x, window.getSize().y);
     gradient[3].position = sf::Vector2f(0, window.getSize().y);
 
-    // Set the colors for gradient
+    // Set the colors for the gradient (top to bottom)
     gradient[0].color = sf::Color(0x72, 0xd1, 0x84, 255); // Top color (#72d184)
     gradient[1].color = sf::Color(0x72, 0xd1, 0x84, 255); // Top color (#72d184)
     gradient[2].color = sf::Color(0x3a, 0x6c, 0xd8, 255); // Bottom color (#3a6cd8)
     gradient[3].color = sf::Color(0x3a, 0x6c, 0xd8, 255); // Bottom color (#3a6cd8)
 
+    // Set initial alpha for elements
     float alpha = 0.0f;
     bool fadeIn = true;
     bool fadeOut = false;
+    bool moveButtonDown = false;
     sf::Clock clock;
 
     while (window.isOpen()) {
@@ -152,116 +212,247 @@ int main() {
                 window.close();
             }
 
-            // Handle arrow button clicks
-            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-                sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-                if (rightArrow.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePosition))) {
-                    if (currentPage < 4) {
-                        fadeOut = true;
-                        clock.restart();
-                    }
-                } else if (leftArrow.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePosition)) && currentPage > 1) {
+            // Handle button click
+            if (currentPage == 1 && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                if (beginButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(sf::Mouse::getPosition(window)))) {
+                    fadeOut = true;
+                    clock.restart();
+                }
+            } else if ((currentPage == 2 || currentPage == 3) && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                if (doneButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(sf::Mouse::getPosition(window)))) {
                     fadeOut = true;
                     clock.restart();
                 }
             }
 
-            // Handle text input for ingredient pages
-            if (currentPage == 2 || currentPage == 3) {
-                if (event.type == sf::Event::TextEntered) {
-                    if (event.text.unicode == 8 && !currentInput.empty()) { // Handle backspace
+            // Handle text input
+            if (currentPage == 2 && inputActive && event.type == sf::Event::TextEntered) {
+                if (event.text.unicode == '\b') {
+                    if (!currentInput.empty()) {
                         currentInput.pop_back();
-                    } else if (event.text.unicode < 128 && event.text.unicode != 13) { // Handle valid input
-                        currentInput += static_cast<char>(event.text.unicode);
-                    } else if (event.text.unicode == 13 && !currentInput.empty()) { // Handle enter
-                        if (currentPage == 2) {
-                            preferences.push_back(currentInput);
-                        } else {
-                            avoidances.push_back(currentInput);
-                        }
-                        currentInput = "";
                     }
-                    userInput.setString(currentInput);
+                } else if (event.text.unicode < 128) {
+                    currentInput += static_cast<char>(event.text.unicode);
+                }
+                userInput.setString(currentInput + (showCursor ? '|' : ' '));
+                userInput.setPosition(inputBox.getPosition().x + (inputBox.getSize().x - userInput.getLocalBounds().width) / 2.0f, inputBox.getPosition().y + 5.0f);
+            }
+
+            if (currentPage == 2 && avoidInputActive && event.type == sf::Event::TextEntered) {
+                if (event.text.unicode == '\b') {
+                    if (!avoidCurrentInput.empty()) {
+                        avoidCurrentInput.pop_back();
+                    }
+                } else if (event.text.unicode < 128) {
+                    avoidCurrentInput += static_cast<char>(event.text.unicode);
+                }
+                avoidUserInput.setString(avoidCurrentInput + (showCursor ? '|' : ' '));
+                avoidUserInput.setPosition(avoidInputBox.getPosition().x + (avoidInputBox.getSize().x - avoidUserInput.getLocalBounds().width) / 2.0f, avoidInputBox.getPosition().y + 5.0f);
+            }
+
+            // Handle mouse click to activate/deactivate input boxes
+            if (currentPage == 2 && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2f mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(window));
+                if (inputBox.getGlobalBounds().contains(mousePos)) {
+                    inputActive = true;
+                    avoidInputActive = false;
+                } else if (avoidInputBox.getGlobalBounds().contains(mousePos)) {
+                    inputActive = false;
+                    avoidInputActive = true;
+                } else {
+                    inputActive = false;
+                    avoidInputActive = false;
+                }
+            }
+
+            // Handle Enter key to add input to vectors
+            if (currentPage == 2 && event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Enter) {
+                if (inputActive && !currentInput.empty()) {
+                    preferences.push_back(currentInput);
+                    currentInput.clear();
+                    userInput.setString("|");
+                } else if (avoidInputActive && !avoidCurrentInput.empty()) {
+                    avoidances.push_back(avoidCurrentInput);
+                    avoidCurrentInput.clear();
+                    avoidUserInput.setString("|");
+                }
+            }
+
+            // Handle icon clicks for setting priorities
+            if (currentPage == 3 && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2f mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(window));
+                if (cookTimeSprite.getGlobalBounds().contains(mousePos) && find(priorities.begin(), priorities.end(), "cook_time") == priorities.end()) {
+                    priorities.push_back("cook_time");
+                } else if (popularitySprite.getGlobalBounds().contains(mousePos) && find(priorities.begin(), priorities.end(), "rating") == priorities.end()) {
+                    priorities.push_back("rating");
+                } else if (calorieSprite.getGlobalBounds().contains(mousePos) && find(priorities.begin(), priorities.end(), "calories") == priorities.end()) {
+                    priorities.push_back("calories");
                 }
             }
         }
 
-        // Fade in/out
+        // Blinking cursor logic
+        if (cursorClock.getElapsedTime().asSeconds() >= 0.5f) {
+            showCursor = !showCursor;
+            cursorClock.restart();
+            if (inputActive) {
+                userInput.setString(currentInput + (showCursor ? '|' : ' '));
+            } else if (avoidInputActive) {
+                avoidUserInput.setString(avoidCurrentInput + (showCursor ? '|' : ' '));
+            }
+        }
+
+        // Update button color when hovering
+        if (currentPage == 1) {
+            if (beginButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(sf::Mouse::getPosition(window)))) {
+                beginButton.setColor(sf::Color(200, 200, 200)); // Light grey when hovered
+            } else {
+                beginButton.setColor(sf::Color(255, 255, 255)); // Default white
+            }
+        } else {
+            if (doneButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(sf::Mouse::getPosition(window)))) {
+                doneButton.setColor(sf::Color(200, 200, 200)); // Light grey when hovered
+            } else {
+                doneButton.setColor(sf::Color(255, 255, 255)); // Default white
+            }
+        }
+
+        // Handle icon hovering on page 3
+        if (currentPage == 3) {
+            sf::Vector2f mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(window));
+            if (cookTimeSprite.getGlobalBounds().contains(mousePos)) {
+                cookTimeSprite.setTexture(cookTimeTexture2);
+            } else {
+                cookTimeSprite.setTexture(cookTimeTexture);
+            }
+
+            if (popularitySprite.getGlobalBounds().contains(mousePos)) {
+                popularitySprite.setTexture(popularityTexture2);
+            } else {
+                popularitySprite.setTexture(popularityTexture);
+            }
+
+            if (calorieSprite.getGlobalBounds().contains(mousePos)) {
+                calorieSprite.setTexture(calorieTexture2);
+            } else {
+                calorieSprite.setTexture(calorieTexture);
+            }
+        }
+
+        // Update fade in/out logic
         float deltaTime = clock.restart().asSeconds();
         if (fadeIn) {
-            alpha += 250.0f * deltaTime; // Fade in elements faster
+            alpha += 250.0f * deltaTime; // Increase alpha to fade in elements faster
             if (alpha >= 255.0f) {
                 alpha = 255.0f;
                 fadeIn = false;
             }
         } else if (fadeOut) {
-            alpha -= 250.0f * deltaTime; // Fade out elements faster
+            alpha -= 250.0f * deltaTime; // Decrease alpha to fade out elements faster
             if (alpha <= 0.0f) {
                 alpha = 0.0f;
                 fadeOut = false;
+                if (currentPage == 1) {
+                    moveButtonDown = true;
+                    currentPage = 2;
+                    doneButtonText.setString("NEXT");
+                    clock.restart();
+                } else if (currentPage == 2) {
+                    currentPage = 3;
+                    doneButtonText.setString("DONE");
+                    clock.restart();
+                } else if (currentPage == 3) {
+                    cout << "Priorities: ";
+                    for (int i = 0; i < priorities.size(); i++) {
+                        cout << priorities[i] << " ";
+                    }
+                    window.close(); // Close window when "DONE" is clicked on the last page
+                }
                 fadeIn = true;
-                currentPage = (currentPage < 4) ? currentPage + 1 : 1;
-                clock.restart();
             }
+        } else if (moveButtonDown) {
+            beginButton.move(0, 100.0f); // Move the button down by 100 pixels
+            beginButtonText.move(0, 100.0f); // Move the text down by 100 pixels
+            moveButtonDown = false;
+            fadeIn = true;
+            clock.restart();
         }
 
+        // Set the alpha for all elements
         sf::Color fadeColor(255, 255, 255, static_cast<sf::Uint8>(alpha));
         titleText.setFillColor(fadeColor);
         fridgeSprite.setColor(fadeColor);
-        rightArrow.setColor(fadeColor);
-        doneButton.setFillColor(fadeColor);
-        page2Question.setFillColor(fadeColor);
-        page3Question.setFillColor(fadeColor);
-        page4Question.setFillColor(fadeColor);
-        inputBox.setFillColor(sf::Color(255, 255, 255, static_cast<sf::Uint8>(alpha)));
-        userInput.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(alpha)));
-        for (auto &text : priorityTexts) text.setFillColor(fadeColor);
-        for (auto &row : priorityBoxes) {
-            for (auto &box : row) {
-                box.setFillColor(sf::Color(255, 255, 255, static_cast<sf::Uint8>(alpha)));
+        if (currentPage == 1) {
+            beginButtonText.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(alpha)));
+        } else {
+            doneButtonText.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(alpha)));
+            if (currentPage == 2) {
+                page2Question.setFillColor(fadeColor);
+                page3Question.setFillColor(fadeColor);
+                inputBox.setFillColor(sf::Color(255, 255, 255, static_cast<sf::Uint8>(alpha)));
+                userInput.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(alpha)));
+                avoidInputBox.setFillColor(sf::Color(255, 255, 255, static_cast<sf::Uint8>(alpha)));
+                avoidUserInput.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(alpha)));
+            } else if (currentPage == 3) {
+                page4Question.setFillColor(fadeColor);
+                page4Context.setFillColor(fadeColor);
+                cookTimeSprite.setColor(fadeColor);
+                popularitySprite.setColor(fadeColor);
+                calorieSprite.setColor(fadeColor);
+
+                // Display priorities
+                for (size_t i = 0; i < priorities.size(); ++i) {
+                    sf::Text priorityText;
+                    priorityText.setFont(font);
+                    priorityText.setCharacterSize(20);
+                    priorityText.setFillColor(sf::Color::White);
+                    if (priorities[i] == "cook_time") {
+                        priorityText.setString(i == 0 ? "High" : (i == 1 ? "Medium" : "Low"));
+                        priorityText.setPosition(cookTimeSprite.getPosition().x + cookTimeSprite.getGlobalBounds().width / 2 - priorityText.getGlobalBounds().width / 2, cookTimeSprite.getPosition().y + cookTimeSprite.getGlobalBounds().height + 700);
+                    } else if (priorities[i] == "rating") {
+                        priorityText.setString(i == 0 ? "High" : (i == 1 ? "Medium" : "Low"));
+                        priorityText.setPosition(popularitySprite.getPosition().x + popularitySprite.getGlobalBounds().width / 2 - priorityText.getGlobalBounds().width / 2, popularitySprite.getPosition().y + popularitySprite.getGlobalBounds().height + 700);
+                    } else if (priorities[i] == "calories") {
+                        priorityText.setString(i == 0 ? "High" : (i == 1 ? "Medium" : "Low"));
+                        priorityText.setPosition(calorieSprite.getPosition().x + calorieSprite.getGlobalBounds().width / 2 - priorityText.getGlobalBounds().width / 2, calorieSprite.getPosition().y + calorieSprite.getGlobalBounds().height + 700);
+                    }
+                    window.draw(priorityText);
+                }
             }
         }
 
-        // Clear window
+        // Clear the window
         window.clear();
 
-        // Draw gradient background
+        // Draw the gradient background
         window.draw(gradient);
 
         // Draw current page elements
         if (currentPage == 1) {
             window.draw(fridgeSprite);
             window.draw(titleText);
-            window.draw(rightArrow);
+            window.draw(beginButton);
+            window.draw(beginButtonText);
         } else if (currentPage == 2) {
             window.draw(page2Question);
             window.draw(inputBox);
             window.draw(userInput);
-            window.draw(doneButton);
-            window.draw(rightArrow);
-            if (currentPage > 1) {
-                window.draw(leftArrow);
-            }
-        } else if (currentPage == 3) {
             window.draw(page3Question);
-            window.draw(inputBox);
-            window.draw(userInput);
+            window.draw(avoidInputBox);
+            window.draw(avoidUserInput);
             window.draw(doneButton);
-            window.draw(rightArrow);
-            window.draw(leftArrow);
-        } else if (currentPage == 4) {
+            window.draw(doneButtonText);
+        } else if (currentPage == 3) {
             window.draw(page4Question);
-            for (int i = 0; i < 3; ++i) {
-                window.draw(priorityTexts[i]);
-                for (int j = 0; j < 3; ++j) {
-                    window.draw(priorityBoxes[i][j]);
-                }
-            }
+            window.draw(page4Context);
+            window.draw(cookTimeSprite);
+            window.draw(popularitySprite);
+            window.draw(calorieSprite);
             window.draw(doneButton);
-            window.draw(leftArrow);
+            window.draw(doneButtonText);
         }
 
-        // Display contents of window
+        // Display the contents of the window
         window.display();
     }
 

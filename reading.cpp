@@ -158,10 +158,39 @@ vector<Recipe> parseCSVLine(const string& filename) {
     return recipes;
 }
 
-int main() {
-    vector<Recipe> recipes = parseCSVLine("C:\\Users\\angel\\Downloads\\archive (1)\\recipes.csv");
-    for (const auto& recipe : recipes) {
-        cout << "ID: " << recipe.id << ", Name: " << recipe.name << endl;
+vector<vector<string>> stringsss(vector<Recipe> recipe_objs) {
+    vector<vector<string>> all_strings;
+    for (int i = 0; i < recipe_objs.size(); i++) {
+        vector<string> strings;
+        
+        string name = "Name: ";
+        name += recipe_objs[i].name;
+        strings.push_back(name);
+        
+        string calories = "Calorie count: ";
+        calories += to_string(recipe_objs[i].calories);
+        strings.push_back(calories);
+        
+        string cook_time = "Cook time: ";
+        cook_time += to_string(recipe_objs[i].total_time) + " mins";
+        strings.push_back(cook_time);
+        
+        string review_count = "Number of Reviews: ";
+        review_count += to_string(recipe_objs[i].review_count);
+        strings.push_back(review_count);
+        
+        string ingredients = "Ingredients: ";
+        for (int j = 0; j < recipe_objs[i].ingredients.size(); j++) {
+            if (j + 1 == recipe_objs[i].ingredients.size()) {
+                ingredients += recipe_objs[i].ingredients[j];
+            }
+            else {
+                ingredients += recipe_objs[i].ingredients[j] + ", ";
+            }
+            strings.push_back(ingredients);
+        }
+        all_strings.push_back(strings);        
+
     }
-    return 0;
+    return all_strings;
 }

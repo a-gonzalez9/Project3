@@ -9,8 +9,53 @@
 #include <cstdlib>
 #include <ctime>
 #include <filesystem>
+#include "reading.cpp"
 
 using namespace std;
+
+void displayRecipesWindow(vector<Recipe> recipes, sf::Font &font) {
+    sf::RenderWindow recipesWindow(sf::VideoMode(800, 600), "Top 5 Recipes", sf::Style::Close);
+
+    vector<sf::Text> recipeTexts;
+    for (size_t i = 0; i < recipes.size(); ++i) {
+        sf::Text recipeText;
+        recipeText.setFont(font);
+        recipeText.setCharacterSize(20);
+        recipeText.setFillColor(sf::Color::White);
+
+        stringstream ss;
+        ss << "Name: " << recipes[i].name << "\n"
+           << "Cook Time: " << recipes[i].total_time << " min\n"
+           << "Rating: " << recipes[i].rating << "\n"
+           << "Calories: " << recipes[i].calories << "\n"
+           << "Ingredients: ";
+        for (const auto &ingredient : recipes[i].ingredients) {
+            ss << ingredient << ", ";
+        }
+        string recipeInfo = ss.str();
+        recipeInfo.pop_back();
+        recipeInfo.pop_back(); // Remove trailing comma and space
+
+        recipeText.setString(recipeInfo);
+        recipeText.setPosition(20, 30 + i * 120);
+        recipeTexts.push_back(recipeText);
+    }
+
+    while (recipesWindow.isOpen()) {
+        sf::Event event;
+        while (recipesWindow.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) {
+                recipesWindow.close();
+            }
+        }
+
+        recipesWindow.clear();
+        for (const auto &text : recipeTexts) {
+            recipesWindow.draw(text);
+        }
+        recipesWindow.display();
+    }
+}
 
 int main() {
 
@@ -185,6 +230,10 @@ int main() {
     sf::FloatRect calorieBounds = calorieSprite.getGlobalBounds();
     calorieSprite.setPosition((window.getSize().x / 8.0f * 6.0f) - (calorieBounds.width / 2.0f), 350.0f);
 
+    sf::Text prioritiesDisplay("Your Priorities: N/A", font, 30);
+    prioritiesDisplay.setFillColor(sf::Color::White);
+    prioritiesDisplay.setPosition((window.getSize().x - prioritiesDisplay.getGlobalBounds().width) / 2.0f, calorieSprite.getPosition().y + calorieSprite.getGlobalBounds().height + 300);
+
     // Create a gradient background (top to bottom gradient)
     sf::VertexArray gradient(sf::Quads, 4);
     gradient[0].position = sf::Vector2f(0, 0);
@@ -281,14 +330,53 @@ int main() {
             // Handle icon clicks for setting priorities
             if (currentPage == 3 && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                 sf::Vector2f mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(window));
-                if (cookTimeSprite.getGlobalBounds().contains(mousePos) && find(priorities.begin(), priorities.end(), "cook_time") == priorities.end()) {
+
+                if (cookTimeSprite.getGlobalBounds().contains(mousePos) &&
+                    find(priorities.begin(), priorities.end(), "cook_time") == priorities.end()) {
                     priorities.push_back("cook_time");
-                } else if (popularitySprite.getGlobalBounds().contains(mousePos) && find(priorities.begin(), priorities.end(), "rating") == priorities.end()) {
+                } else if (popularitySprite.getGlobalBounds().contains(mousePos) &&
+                           find(priorities.begin(), priorities.end(), "rating") == priorities.end()) {
                     priorities.push_back("rating");
-                } else if (calorieSprite.getGlobalBounds().contains(mousePos) && find(priorities.begin(), priorities.end(), "calories") == priorities.end()) {
+                } else if (calorieSprite.getGlobalBounds().contains(mousePos) &&
+                           find(priorities.begin(), priorities.end(), "calories") == priorities.end()) {
                     priorities.push_back("calories");
                 }
             }
+
+        }
+
+        if (currentPage == 3) {
+            if (priorities.empty()) {
+                prioritiesDisplay.setString("Your Priorities: N/A");
+            } else {
+                string displayText = "Your Priorities: ";
+                for (size_t i = 0; i < priorities.size(); ++i) {
+                    string priorityText;
+                    if (i == 0) {
+                        priorityText = "(High)";
+                    } else if (i == 1) {
+                        priorityText = "(Medium)";
+                    } else if (i == 2) {
+                        priorityText = "(Low)";
+                    }
+
+                    if (priorities[i] == "cook_time") {
+                        displayText += "Cook Time " + priorityText;
+                    } else if (priorities[i] == "rating") {
+                        displayText += "Rating " + priorityText;
+                    } else if (priorities[i] == "calories") {
+                        displayText += "Calories " + priorityText;
+                    }
+
+                    if (i < priorities.size() - 1) {
+                        displayText += ", ";
+                    }
+                }
+                prioritiesDisplay.setString(displayText);
+            }
+
+            // Update the position of the priorities display
+            prioritiesDisplay.setPosition((window.getSize().x - prioritiesDisplay.getGlobalBounds().width) / 2.0f, calorieSprite.getPosition().y + calorieSprite.getGlobalBounds().height + 50);
         }
 
         // Blinking cursor logic
@@ -400,24 +488,6 @@ int main() {
                 popularitySprite.setColor(fadeColor);
                 calorieSprite.setColor(fadeColor);
 
-                // Display priorities
-                for (size_t i = 0; i < priorities.size(); ++i) {
-                    sf::Text priorityText;
-                    priorityText.setFont(font);
-                    priorityText.setCharacterSize(20);
-                    priorityText.setFillColor(sf::Color::White);
-                    if (priorities[i] == "cook_time") {
-                        priorityText.setString(i == 0 ? "High" : (i == 1 ? "Medium" : "Low"));
-                        priorityText.setPosition(cookTimeSprite.getPosition().x + cookTimeSprite.getGlobalBounds().width / 2 - priorityText.getGlobalBounds().width / 2, cookTimeSprite.getPosition().y + cookTimeSprite.getGlobalBounds().height + 700);
-                    } else if (priorities[i] == "rating") {
-                        priorityText.setString(i == 0 ? "High" : (i == 1 ? "Medium" : "Low"));
-                        priorityText.setPosition(popularitySprite.getPosition().x + popularitySprite.getGlobalBounds().width / 2 - priorityText.getGlobalBounds().width / 2, popularitySprite.getPosition().y + popularitySprite.getGlobalBounds().height + 700);
-                    } else if (priorities[i] == "calories") {
-                        priorityText.setString(i == 0 ? "High" : (i == 1 ? "Medium" : "Low"));
-                        priorityText.setPosition(calorieSprite.getPosition().x + calorieSprite.getGlobalBounds().width / 2 - priorityText.getGlobalBounds().width / 2, calorieSprite.getPosition().y + calorieSprite.getGlobalBounds().height + 700);
-                    }
-                    window.draw(priorityText);
-                }
             }
         }
 
@@ -450,6 +520,7 @@ int main() {
             window.draw(calorieSprite);
             window.draw(doneButton);
             window.draw(doneButtonText);
+            window.draw(prioritiesDisplay);
         }
 
         // Display the contents of the window

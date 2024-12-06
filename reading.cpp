@@ -172,7 +172,12 @@ vector<vector<string>> stringsss(vector<Recipe> recipe_objs) {
         strings.push_back(calories);
         
         string cook_time = "Cook time: ";
-        cook_time += to_string(recipe_objs[i].total_time) + " mins";
+        int mins = recipe_objs[i].total_time % 60;
+        int hours = recipe_objs[i].total_time / 60;
+        if (hours > 0) {
+            cook_time += to_string(hours) + " hours ";
+        }
+        cook_time += to_string(mins) + " mins";
         strings.push_back(cook_time);
         
         string review_count = "Number of Reviews: ";

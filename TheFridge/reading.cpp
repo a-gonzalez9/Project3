@@ -80,7 +80,7 @@ vector<Recipe> parseCSVLine(const string& filename, map<string, vector<int>> &th
     string line;
     getline(file, line); // Skip header
 
-    while (getline(file, line) && counter < 116) {
+    while (getline(file, line) && counter < 2200) {
         stringstream ss(line);
         //cout << line << endl;
         string idstr, name, authoridstr, author_name, cook_timestr,
@@ -193,18 +193,46 @@ vector<Recipe> parseCSVLine(const string& filename, map<string, vector<int>> &th
 
     return recipes;
 }
+vector<vector<string>> stringsss(vector<Recipe> recipe_objs) {
+    vector<vector<string>> all_strings;
+    for (int i = 0; i < recipe_objs.size(); i++) {
+        vector<string> strings;
 
-int main() {
-    map<string, vector<int>> the_map;
-    vector<Recipe> csv_stuff = parseCSVLine("C:\\Users\\carme\\Downloads\\actuallyUpdated.csv", the_map);
-    for (auto it = the_map.begin(); it != the_map.end(); ++it) {
-       cout << "Key: " << it->first << endl;
-       for (int id : it->second) {
-           cout << "Id: " << id << " ";
-       }
-       cout << endl;
+        string name = "Name: ";
+        name += recipe_objs[i].name;
+        strings.push_back(name);
+
+        string calories = "Calorie count: ";
+        calories += to_string(recipe_objs[i].calories);
+        strings.push_back(calories);
+
+        string cook_time = "Cook time: ";
+        int mins = recipe_objs[i].total_time % 60;
+        int hours = recipe_objs[i].total_time / 60;
+        if (hours > 0) {
+            cook_time += to_string(hours) + " hours ";
+        }
+        cook_time += to_string(mins) + " mins";
+        strings.push_back(cook_time);
+
+        string review_count = "Number of Reviews: ";
+        review_count += to_string(recipe_objs[i].review_count);
+        strings.push_back(review_count);
+
+        string ingredients = "Ingredients: ";
+        for (int j = 0; j < recipe_objs[i].ingredients.size(); j++) {
+            if (j + 1 == recipe_objs[i].ingredients.size()) {
+                ingredients += recipe_objs[i].ingredients[j];
+            }
+            else {
+                ingredients += recipe_objs[i].ingredients[j] + ", ";
+            }
+            strings.push_back(ingredients);
+        }
+        all_strings.push_back(strings);
+
     }
-    return 0;
+    return all_strings;
 }
 
 
